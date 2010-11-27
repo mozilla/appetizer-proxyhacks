@@ -32,7 +32,7 @@ class Application(object):
         host = req.host.split(':')[0]
         if host.endswith('.localhost'):
             host = host[:-len('.localhost')]
-        dir = os.path.join(self.site_path, urllib.quote(host, ''))
+        dir = os.path.join(self.site_path, 'sites', urllib.quote(host, ''))
         if not os.path.exists(dir):
             raise exc.HTTPNotFound('No site registered for domain %s (in %s)'
                                    % (host, dir))
@@ -49,10 +49,15 @@ class Application(object):
         import subprocess
         proc = subprocess.Popen(
             ['git', 'pull', 'origin', 'master'],
-            cwd=self.site_path)
+            cwd=self.site_path,
+            stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        stdout, stderr = proc.communicate()
         # Forget all the old sites; all is new again!
         self.sites = {}
-        return Response('ok')
+        response = 'ok\n' + stdout
+        if stderr:
+            response += '\nstderr:\n' + stderr
+        return Response(response)
 
 class Site(object):
     def __init__(self, path):
