@@ -66,7 +66,7 @@ class Site(object):
             self.rewriter = ns['rewriter']
         else:
             self.rewriter = None
-        self.proxyer = TransLogger(proxy_exact_request)
+        self.proxyer = proxy_exact_request
 
     def register(self, **kw):
         def decorator(func):
@@ -93,8 +93,8 @@ class Site(object):
         req.host = new_host
         req.environ['SERVER_NAME'] = new_host
         req.environ['SERVER_PORT'] = '80'
-        print 'Proxying to %s' % req.url
         resp = req.get_response(self.proxyer)
+        resp.decode_content()
         resp = self.rewrite_links(req, resp, new_host, old_host)
         return resp
 
