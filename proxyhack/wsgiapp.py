@@ -37,7 +37,12 @@ class Application(object):
             raise exc.HTTPNotFound('No site registered for domain %s (in %s)'
                                    % (host, dir))
         if dir not in self.sites:
-            self.sites[dir] = Site(dir)
+            try:
+                self.sites[dir] = Site(dir)
+            except:
+                import traceback
+                e = traceback.format_exc()
+                return Response(e, status=500, content_type='text/plain')
         return self.sites[dir]
 
     def gitpull(self, req):
