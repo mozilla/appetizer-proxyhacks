@@ -112,7 +112,7 @@ class Site(object):
                     print 'Reset %s: %r->%r' % (
                         name, resp.headers[name], value)
                     resp.headers[name] = value
-            types = ['xml', 'json', 'html', 'css']
+            types = ['xml', 'json', 'html', 'css', 'javascript']
             rewrite_body = any(t in (resp.content_type or '').lower()
                                for t in types)
             if rewrite_body:
