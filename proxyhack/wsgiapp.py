@@ -5,6 +5,7 @@ from lxml import html
 from wsgiproxy.exactproxy import proxy_exact_request
 from pyquery import PyQuery
 from paste.fileapp import FileApp
+from paste.translogger import TransLogger
 import urllib
 import posixpath
 import os
@@ -42,8 +43,10 @@ class Application(object):
     def gitpull(self, req):
         import subprocess
         proc = subprocess.Popen(
-            ['git', 'pull'],
+            ['git', 'pull', 'origin', 'master'],
             cwd=self.site_path)
+        # Forget all the old sites; all is new again!
+        self.sites = {}
         return Response('ok')
 
 class Site(object):
@@ -63,6 +66,7 @@ class Site(object):
             self.rewriter = ns['rewriter']
         else:
             self.rewriter = None
+        self.proxyer = TransLogger(proxy_exact_request)
 
     def register(self, **kw):
         def decorator(func):
@@ -89,8 +93,8 @@ class Site(object):
         req.host = new_host
         req.environ['SERVER_NAME'] = new_host
         req.environ['SERVER_PORT'] = '80'
-        #print 'Proxying to %s' % req.url
-        resp = req.get_response(proxy_exact_request)
+        print 'Proxying to %s' % req.url
+        resp = req.get_response(self.proxyer)
         resp = self.rewrite_links(req, resp, new_host, old_host)
         return resp
 
@@ -105,8 +109,8 @@ class Site(object):
                     set_new_host = new_host
                 if repl_host_re.search(value):
                     value = repl_host_re.sub(set_new_host, value)
-                    #print 'Reset %s: %r->%r' % (
-                    #    name, resp.headers[name], value)
+                    print 'Reset %s: %r->%r' % (
+                        name, resp.headers[name], value)
                     resp.headers[name] = value
             types = ['xml', 'json', 'html', 'css']
             rewrite_body = any(t in (resp.content_type or '').lower()
