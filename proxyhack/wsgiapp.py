@@ -11,12 +11,14 @@ import posixpath
 import os
 import re
 
+
 def norm_path(req):
     path_info = req.path_info
     path_info = posixpath.normpath(path_info)
     if req.path_info.endswith('/') and not path_info.endswith('/'):
         path_info += '/'
     req.path_info = path_info
+
 
 class Application(object):
 
@@ -58,6 +60,7 @@ class Application(object):
         if stderr:
             response += '\nstderr:\n' + stderr
         return Response(response)
+
 
 class Site(object):
     def __init__(self, path):
@@ -177,11 +180,13 @@ class ExplicitFile(object):
         resp.body = fp.read()
         return resp
 
+
 class Matcher(object):
     def __init__(self, func=None, path=None, regex=None):
         self.func = func
         self.path = path
         self.regex = regex
+
     def __call__(self, req):
         if self.func:
             return self.func(req)
@@ -190,4 +195,3 @@ class Matcher(object):
         if self.regex:
             return re.search(req.path_info, self.regex)
         return None
-
