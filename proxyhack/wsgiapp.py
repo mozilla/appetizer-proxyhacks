@@ -40,7 +40,8 @@ class Application(object):
                                    % (host, dir))
         if dir not in self.sites:
             try:
-                self.sites[dir] = Site(dir)
+                self.sites[dir] = Site(
+                    dir, os.path.join(self.site_path, 'global_static'))
             except:
                 import traceback
                 e = traceback.format_exc()
@@ -63,8 +64,9 @@ class Application(object):
 
 
 class Site(object):
-    def __init__(self, path):
+    def __init__(self, path, global_static):
         self.path = path
+        self.global_static = global_static
         self.dyn_registry = []
         self.config = {}
         execfile(os.path.join(path, 'config.py'), self.config)
@@ -79,6 +81,11 @@ class Site(object):
             self.rewriter = ns['rewriter']
         else:
             self.rewriter = None
+        if os.path.exists(os.path.join(path, 'append.html')):
+            with open(os.path.join(path, 'append.html')) as fp:
+                self.appender = fp.read()
+        else:
+            self.appender = None
         self.proxyer = proxy_exact_request
 
     def register(self, **kw):
@@ -98,6 +105,8 @@ class Site(object):
             return dyn_app
         resp = self.proxy_req(req)
         resp = self.rewrite_response(req, resp)
+        if self.appender and 'html' in resp.content_type:
+            resp.body += self.appender
         return resp
 
     def proxy_req(self, req):
@@ -133,16 +142,18 @@ class Site(object):
         return resp
 
     def find_file(self, req):
-        path = os.path.join(self.path, 'static', req.path_info.lstrip('/'))
-        path = os.path.normpath(path)
-        assert path.startswith(self.path)
-        if os.path.isdir(path):
-            path = os.path.join(path, 'index.html')
-        if os.path.exists(path):
-            return FileApp(path)
-        path = path + '.headers'
-        if os.path.exists(path):
-            return ExplicitFile(path)
+        for basepath in [os.path.join(self.path, 'static'),
+                     self.global_static]:
+            path = os.path.join(basepath, req.path_info.lstrip('/'))
+            path = os.path.normpath(path)
+            assert path.startswith(basepath)
+            if os.path.isdir(path):
+                path = os.path.join(path, 'index.html')
+            if os.path.exists(path):
+                return FileApp(path)
+            path = path + '.headers'
+            if os.path.exists(path):
+                return ExplicitFile(path)
         return None
 
     def find_dyn(self, req):
