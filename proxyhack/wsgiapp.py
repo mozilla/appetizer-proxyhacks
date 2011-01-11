@@ -105,7 +105,7 @@ class Site(object):
             return dyn_app
         resp = self.proxy_req(req)
         resp = self.rewrite_response(req, resp)
-        if self.appender and 'html' in resp.content_type:
+        if self.appender and resp.content_type and 'html' in resp.content_type:
             resp.body += self.appender
         return resp
 
@@ -131,8 +131,6 @@ class Site(object):
                     set_new_host = new_host
                 if repl_host_re.search(value):
                     value = repl_host_re.sub(set_new_host, value)
-                    print 'Reset %s: %r->%r' % (
-                        name, resp.headers[name], value)
                     resp.headers[name] = value
             types = ['xml', 'json', 'html', 'css', 'javascript']
             rewrite_body = any(t in (resp.content_type or '').lower()
